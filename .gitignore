@@ -6,6 +6,9 @@ readmeEquipo/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Local Logs
+logs/
+
 ### STS ###
 .apt_generated
 .classpath
