@@ -10,6 +10,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,7 +20,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@AllArgsConstructor
 public class Case {
+
+    public Case() {
+        // Constructor vacío requerido por JPA
+    }
 
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
@@ -36,7 +42,6 @@ public class Case {
     @Column(updatable = false, nullable = false)
     private LocalDateTime createdAt;
 
-    
     public enum CaseStatus {
         OPEN,
         IN_PROGRESS,
