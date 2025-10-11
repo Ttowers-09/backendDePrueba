@@ -10,10 +10,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Builder;
 
-@Getters    
+@Getters
 @Setters
 @Builder
 
@@ -21,11 +22,12 @@ import lombok.Builder;
 @Table(name = "calls")
 
 public class Call {
+
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "case_id")
     private Case caseEntity;
 
