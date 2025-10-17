@@ -25,6 +25,10 @@ services:
       # Application configuration
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Google OAuth2 (OIDC)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL:-http://localhost:5173}
 
       # JVM configuration for production
       JAVA_OPTS: ${JAVA_OPTS:--Xmx1024m -Xms512m -XX:+UseG1GC -XX:+UseContainerSupport}
