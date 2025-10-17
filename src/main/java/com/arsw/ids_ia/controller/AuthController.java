@@ -1,13 +1,25 @@
 package com.arsw.ids_ia.controller;
 
-import com.arsw.ids_ia.dto.*;
-import com.arsw.ids_ia.service.AuthService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.arsw.ids_ia.dto.ApiResponse;
+import com.arsw.ids_ia.dto.JwtAuthenticationResponse;
+import com.arsw.ids_ia.dto.LoginRequest;
+import com.arsw.ids_ia.dto.RefreshTokenRequest;
+import com.arsw.ids_ia.dto.SignUpRequest;
+import com.arsw.ids_ia.service.AuthService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,16 +36,16 @@ public class AuthController {
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         try {
             String jwt = authService.authenticateUser(
-                loginRequest.getUsernameOrEmail(), 
-                loginRequest.getPassword()
+                    loginRequest.getUsernameOrEmail(),
+                    loginRequest.getPassword()
             );
-            
+
             String refreshToken = authService.generateRefreshToken(loginRequest.getUsernameOrEmail());
-            
+
             return ResponseEntity.ok(new JwtAuthenticationResponse(
-                jwt, 
-                refreshToken, 
-                (long) jwtExpirationInMs
+                    jwt,
+                    refreshToken,
+                    (long) jwtExpirationInMs
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -55,12 +67,12 @@ public class AuthController {
             }
 
             authService.registerUser(
-                signUpRequest.getUsername(),
-                signUpRequest.getEmail(),
-                signUpRequest.getPassword(),
-                signUpRequest.getFirstName(),
-                signUpRequest.getLastName(),
-                signUpRequest.getRole()
+                    signUpRequest.getUsername(),
+                    signUpRequest.getEmail(),
+                    signUpRequest.getPassword(),
+                    signUpRequest.getFirstName(),
+                    signUpRequest.getLastName(),
+                    signUpRequest.getRole()
             );
 
             return ResponseEntity.ok(new ApiResponse(true, "User registered successfully"));
@@ -75,9 +87,9 @@ public class AuthController {
         try {
             String newToken = authService.refreshToken(refreshTokenRequest.getRefreshToken());
             return ResponseEntity.ok(new JwtAuthenticationResponse(
-                newToken, 
-                refreshTokenRequest.getRefreshToken(), 
-                (long) jwtExpirationInMs
+                    newToken,
+                    refreshTokenRequest.getRefreshToken(),
+                    (long) jwtExpirationInMs
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -88,14 +100,14 @@ public class AuthController {
     @GetMapping("/check-username")
     public ResponseEntity<?> checkUsernameAvailability(@RequestParam String username) {
         Boolean isAvailable = !authService.existsByUsername(username);
-        return ResponseEntity.ok(new ApiResponse(isAvailable, 
-            isAvailable ? "Username is available" : "Username is already taken"));
+        return ResponseEntity.ok(new ApiResponse(isAvailable,
+                isAvailable ? "Username is available" : "Username is already taken"));
     }
 
     @GetMapping("/check-email")
     public ResponseEntity<?> checkEmailAvailability(@RequestParam String email) {
         Boolean isAvailable = !authService.existsByEmail(email);
-        return ResponseEntity.ok(new ApiResponse(isAvailable, 
-            isAvailable ? "Email is available" : "Email is already in use"));
+        return ResponseEntity.ok(new ApiResponse(isAvailable,
+                isAvailable ? "Email is available" : "Email is already in use"));
     }
 }

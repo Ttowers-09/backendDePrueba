@@ -7,7 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -22,6 +23,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.arsw.ids_ia.security.jwt.JwtAuthenticationEntryPoint;
 import com.arsw.ids_ia.security.jwt.JwtAuthenticationFilter;
+import com.arsw.ids_ia.security.oauth2.CustomOAuth2UserService;
+import com.arsw.ids_ia.security.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
+import com.arsw.ids_ia.security.oauth2.OAuth2AuthenticationFailureHandler;
+import com.arsw.ids_ia.security.oauth2.OAuth2AuthenticationSuccessHandler;
+import com.arsw.ids_ia.service.CustomUserDetailsService;
 
 @Configuration
 @EnableWebSecurity
@@ -34,14 +40,26 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private CustomOAuth2UserService customOAuth2UserService;
+
+    @Autowired
+    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+
+    @Autowired
+    private OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public AuthenticationManager authenticationManager() {
+        return new ProviderManager(daoAuthenticationProvider());
     }
 
     @Bean
@@ -56,20 +74,40 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/test/public").permitAll()
+                .requestMatchers("/login/oauth2/**").permitAll()
+                .requestMatchers("/oauth2/**").permitAll()
+                .requestMatchers("/error").permitAll()
                 // Swagger endpoints (if you plan to add Swagger)
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // WebSocket endpoints
                 .requestMatchers("/ws/**").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
-                // Authentication for OAuth2 endpoints
-                .requestMatchers("/oauth2/**").permitAll()
                 )
                 // Configuration for OAuth2 login
-                .oauth2Login();
+                .oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(authorization -> authorization
+                .baseUri("/oauth2/authorization")
+                .authorizationRequestRepository(new HttpCookieOAuth2AuthorizationRequestRepository())
+                )
+                .redirectionEndpoint(redir -> redir.baseUri("/login/oauth2/code/*"))
+                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                .successHandler(oAuth2AuthenticationSuccessHandler)
+                .failureHandler(oAuth2AuthenticationFailureHandler)
+                );
+        // Ensure the DAO authentication provider is used with our PasswordEncoder and UserDetailsService
+        http.authenticationProvider(daoAuthenticationProvider());
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(customUserDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
     }
 
     @Bean

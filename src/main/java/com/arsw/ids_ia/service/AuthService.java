@@ -1,10 +1,11 @@
 package com.arsw.ids_ia.service;
 
-import com.arsw.ids_ia.entity.Role;
-import com.arsw.ids_ia.entity.User;
-import com.arsw.ids_ia.repository.RoleRepository;
-import com.arsw.ids_ia.repository.UserRepository;
-import com.arsw.ids_ia.security.jwt.JwtTokenProvider;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,12 +14,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import com.arsw.ids_ia.entity.Role;
+import com.arsw.ids_ia.entity.User;
+import com.arsw.ids_ia.repository.RoleRepository;
+import com.arsw.ids_ia.repository.UserRepository;
+import com.arsw.ids_ia.security.jwt.JwtTokenProvider;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -36,12 +41,18 @@ public class AuthService {
     private JwtTokenProvider tokenProvider;
 
     public String authenticateUser(String usernameOrEmail, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(usernameOrEmail, password)
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return tokenProvider.generateToken(authentication);
+        log.debug("Attempting authentication for {}", usernameOrEmail);
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(usernameOrEmail, password)
+            );
+            log.info("Authentication SUCCESS for {}", usernameOrEmail);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            return tokenProvider.generateToken(authentication);
+        } catch (Exception ex) {
+            log.warn("Authentication FAILED for {}: {}", usernameOrEmail, ex.getClass().getSimpleName());
+            throw ex;
+        }
     }
 
     public String generateRefreshToken(String username) {
@@ -56,9 +67,9 @@ public class AuthService {
         throw new RuntimeException("Invalid refresh token");
     }
 
-    public User registerUser(String username, String email, String password, 
-                           String firstName, String lastName, Set<String> roleNames) {
-        
+    public User registerUser(String username, String email, String password,
+            String firstName, String lastName, Set<String> roleNames) {
+
         if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("Username is already taken!");
         }
@@ -70,7 +81,7 @@ public class AuthService {
         User user = new User(username, email, passwordEncoder.encode(password), firstName, lastName);
 
         Set<Role> roles = new HashSet<>();
-        
+
         if (roleNames == null || roleNames.isEmpty()) {
             Role userRole = roleRepository.findByName(Role.RoleName.ROLE_USER)
                     .orElseThrow(() -> new RuntimeException("User Role not set."));
